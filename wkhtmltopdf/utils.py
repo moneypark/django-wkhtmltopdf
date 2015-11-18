@@ -27,6 +27,12 @@ def _options_to_args(**options):
         value = options[name]
         if value is None:
             continue
+
+        if isinstance(value, list):
+            # wkhtmltopdf can accept many parameters like --cookie
+            for item in value:
+                flags.extend(_options_to_args(**{name: item}))
+            continue
         flags.append('--' + name.replace('_', '-'))
         if value is not True:
             flags.append(six.text_type(value))
@@ -93,7 +99,7 @@ def wkhtmltopdf(pages, output=None, **kwargs):
                          _options_to_args(**options),
                          list(pages),
                          [output]))
-    ck_kwargs = {'env': env}
+    ck_kwargs = {'env': env, 'shell': True}
     try:
         i = sys.stderr.fileno()
         ck_kwargs['stderr'] = sys.stderr
@@ -101,7 +107,7 @@ def wkhtmltopdf(pages, output=None, **kwargs):
         # can't call fileno() on mod_wsgi stderr object
         pass
 
-    return check_output(ck_args, **ck_kwargs)
+    return check_output([' '.join(ck_args)], **ck_kwargs)
 
 
 def content_disposition_filename(filename):
